@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "afiches",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "live-server", "--port=5502", "--no-browser"],
+      "port": 5502
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+_pruebas/
+node_modules/
+.claude/settings.local.json
+Thumbs.db
+.DS_Store
