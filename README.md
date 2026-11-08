@@ -40,6 +40,11 @@ Abriendo `index.html` con doble clic, las imágenes de la biblioteca se ven y se
 - **Estilo:** 7 fuentes del sistema, alineación, posición vertical, colores, fondo, marco y espacio interior.
 - **Imagen:** ajustar, cubrir o estirar; giro manual o automático.
 - **Dos caras:** frente y reverso con instrucciones para la impresora (voltear por el borde largo o corto), opción de imprimir solo frentes y luego solo reversos, y giro de 180° del reverso.
+- **Alinear el reverso con la impresora:** muchas impresoras corren o achican el reverso.
+  - En **📐 Formato → Caras** hay una **hoja de prueba** con reglas en milímetros sobre las líneas de corte.
+  - Se imprime a dos caras, se mira el reverso contra la luz y se lee cuánto se corre la línea del frente.
+  - Ese valor va en «Mover reverso ↔ / ↕». Queda guardado para esa impresora y vale para todos los diseños.
+  - Hay que imprimir siempre con **escala 100 %** y **márgenes: ninguno**.
 - **Margen hasta el borde y la línea de corte** (automático según el tamaño de la pieza) y línea de corte punteada.
 - **Mis diseños:** guarda y abre diseños con sus imágenes en el navegador; el trabajo actual se guarda solo.
 - **Modo oscuro** por defecto, con botón para cambiar a claro.

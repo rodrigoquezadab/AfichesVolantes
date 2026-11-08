@@ -70,6 +70,18 @@ Nace de la fusión de dos apps del usuario:
     - Filtra por categoría con conteos, incluye «Mis diseños» y se navega con ↑ ↓ y Enter.
   - **Accesos:** botón en la barra, buscador en la pestaña Formato y Ctrl + K.
 
+- **v1.4.0 (09-11-2026):** calibración del dúplex.
+  - **Problema:** el usuario imprimió el Mes de María a dos caras y la línea de corte no coincidía.
+  - **Diagnóstico:** el diseño es simétrico, así que la causa es la impresora.
+    - **Escala:** si achica al 96–98 % desde una esquina, la línea del reverso queda corrida unos W·(1−s) mm, porque al voltear la hoja la esquina de referencia cambia de lado.
+    - **Dúplex:** el arrastre del papel suele correr el reverso 1–3 mm.
+  - **Solución:**
+    - El contenido de cada hoja va dentro de `.hoja-mover`. En el reverso se aplica `translate(x mm, y mm)`, que vale en pantalla, impresión e imagen.
+    - El desplazamiento se guarda en `localStorage` (`afiches.calibracion`) y no en el diseño, porque depende de la impresora.
+    - La hoja de prueba (`modoPrueba`, que no se guarda) dibuja las líneas de corte o el centro, con reglas de ±15 mm.
+    - Instrucción: mirar el reverso contra la luz y leer en su regla dónde cae la línea del frente.
+    - El panel recuerda imprimir con escala 100 % y márgenes «Ninguno».
+
 ## Ideas pendientes
 
 - Varias piezas distintas en una misma hoja (por ejemplo, 4 oraciones diferentes).

@@ -294,6 +294,11 @@
     }
     .resumen b { color: var(--texto); }
 
+    .calibrar { border: 1px dashed var(--borde-2); border-radius: 10px; padding: 10px 12px; margin-top: 10px; font-size: 12px; line-height: 1.45; }
+    .calibrar ol { padding-left: 18px; margin: 6px 0 10px; }
+    .calibrar li { margin-bottom: 4px; }
+    .calibrar small { display: block; font-size: 11px; color: var(--texto-2); }
+    .calibrar input[type="number"] { padding: 7px 9px; border-radius: 8px; border: 1px solid var(--borde-2); background: var(--panel-2); width: 100%; }
     .aviso {
       background: var(--aviso);
       border: 1px solid var(--aviso-borde);
@@ -462,6 +467,20 @@
 
     .corte-h { position: absolute; left: 0; right: 0; height: 0; border-top: 0.3mm dashed #9ca3af; }
     .corte-v { position: absolute; top: 0; bottom: 0; width: 0; border-left: 0.3mm dashed #9ca3af; }
+
+    /* Corrección del reverso (desplazamiento medido con la hoja de prueba) */
+    .hoja-mover { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+
+    /* Hoja de prueba de alineación */
+    .prueba .corte-h, .prueba .corte-v { border-color: #111827; border-style: solid; border-width: 0.25mm 0 0 0.25mm; }
+    .regla { position: absolute; }
+    .regla i { position: absolute; display: block; background: #111827; }
+    .regla b { position: absolute; font: 700 2.6mm/1 Arial, sans-serif; color: #111827; transform: translate(-50%, 0); white-space: nowrap; }
+    .regla-h i { width: 0.15mm; }
+    .regla-v i { height: 0.15mm; }
+    .regla-v b { transform: translate(0, -50%); }
+    .prueba-texto { position: absolute; left: 8mm; right: 8mm; top: 50%; transform: translateY(-50%); text-align: center; font: 3.4mm/1.35 Arial, sans-serif; color: #374151; }
+    .prueba-texto strong { display: block; font-size: 9mm; color: #111827; margin-bottom: 3mm; letter-spacing: 1mm; }
 
     .cara {
       position: relative;
@@ -712,6 +731,22 @@
             <div class="solo-dos-caras">
               <label class="interruptor"><input type="checkbox" data-k="reversoGirado"> 🔃 Girar el reverso 180°</label>
               <div class="aviso" id="avisoDuplex"></div>
+              <div class="calibrar">
+                <b>¿El reverso no coincide con el frente?</b>
+                <ol>
+                  <li>En el diálogo de impresión usa <b>Escala: 100 %</b> (o «Tamaño real») y <b>Márgenes: Ninguno</b>. Si la impresora «ajusta a la página», el reverso nunca calza.</li>
+                  <li>Activa la hoja de prueba, imprímela a dos caras y mírala <b>por el reverso contra la luz</b>.</li>
+                  <li>Lee en la regla del reverso el número donde se ve la línea del frente y escríbelo abajo. Repite la prueba hasta que coincidan.</li>
+                </ol>
+                <label class="interruptor"><input type="checkbox" id="chkPrueba"> 📏 Mostrar la hoja de prueba de alineación</label>
+                <div class="campos-2">
+                  <label class="campo"><span>Mover reverso ↔ (mm)</span>
+                    <input type="number" step="0.5" min="-20" max="20" id="ajusteX"></label>
+                  <label class="campo"><span>Mover reverso ↕ (mm)</span>
+                    <input type="number" step="0.5" min="-20" max="20" id="ajusteY"></label>
+                </div>
+                <small>Positivo = hacia la derecha / hacia abajo, mirando el reverso. Se guarda en este navegador para tu impresora y vale para todos los diseños.</small>
+              </div>
             </div>
           </section>
 
@@ -1118,6 +1153,19 @@
         hoja.style.width = g.W + 'mm';
         hoja.style.height = g.H + 'mm';
 
+        // El reverso se corre según la calibración de la impresora; todo va dentro de .hoja-mover
+        const mover = document.createElement('div');
+        mover.className = 'hoja-mover';
+        if (lado === 'reverso' && (calibracion.x || calibracion.y)) mover.style.transform = `translate(${calibracion.x}mm, ${calibracion.y}mm)`;
+        hoja.appendChild(mover);
+
+        if (modoPrueba) {
+          hoja.classList.add('prueba');
+          dibujarPrueba(mover, g, lado);
+          agregarBloque(hoja, lado, g);
+          return;
+        }
+
         for (let r = 0; r < g.filas; r++) {
           for (let col = 0; col < g.cols; col++) {
             const celda = document.createElement('div');
@@ -1128,41 +1176,112 @@
             pieza.style.cssText = `left:${g.margen}mm;top:${g.margen}mm;width:${g.piezaW}mm;height:${g.piezaH}mm`;
             pieza.appendChild(cara.cloneNode(true));
             celda.appendChild(pieza);
-            hoja.appendChild(celda);
+            mover.appendChild(celda);
           }
         }
 
-        if (estado.corte && g.n > 1) {
-          for (let r = 1; r < g.filas; r++) {
-            const l = document.createElement('div');
-            l.className = 'corte-h';
-            l.style.top = (r * g.celdaH) + 'mm';
-            hoja.appendChild(l);
-          }
-          for (let col = 1; col < g.cols; col++) {
-            const l = document.createElement('div');
-            l.className = 'corte-v';
-            l.style.left = (col * g.celdaW) + 'mm';
-            hoja.appendChild(l);
-          }
-        }
-
-        const bloque = document.createElement('section');
-        bloque.className = 'hoja-bloque bloque-' + lado;
-        bloque.dataset.lado = lado;
-        const papel = HOJAS[estado.hoja];
-        bloque.innerHTML = `<div class="hoja-etiqueta"><span class="tag">${lado === 'frente' ? 'Frente' : 'Reverso'}</span>` +
-          `${papel.nombre} ${g.hojaVertical ? 'vertical' : 'horizontal'} · ${g.n} ${g.n === 1 ? 'pieza' : 'piezas'}</div>`;
-        const escala = document.createElement('div');
-        escala.className = 'hoja-escala';
-        escala.appendChild(hoja);
-        bloque.appendChild(escala);
-        vista.appendChild(bloque);
+        if (estado.corte && g.n > 1) lineasCorte(mover, g);
+        agregarBloque(hoja, lado, g);
       });
 
       ajustarEscala();
       actualizarResumen(g);
     }
+
+    function lineasCorte(destino, g) {
+      const pos = { h: [], v: [] };
+      for (let r = 1; r < g.filas; r++) pos.h.push(r * g.celdaH);
+      for (let col = 1; col < g.cols; col++) pos.v.push(col * g.celdaW);
+      pos.h.forEach((y) => { const l = document.createElement('div'); l.className = 'corte-h'; l.style.top = y + 'mm'; destino.appendChild(l); });
+      pos.v.forEach((x) => { const l = document.createElement('div'); l.className = 'corte-v'; l.style.left = x + 'mm'; destino.appendChild(l); });
+      return pos;
+    }
+
+    // Hoja de prueba: líneas de corte (o el centro, si es una pieza por hoja) con reglas en mm a lo largo.
+    // Las dos caras son iguales; mirando el reverso contra la luz, el número del reverso donde cae
+    // la línea del frente es lo que hay que corregir.
+    function dibujarPrueba(destino, g, lado) {
+      const pos = lineasCorte(destino, g);
+      if (!pos.v.length) { const l = document.createElement('div'); l.className = 'corte-v'; l.style.left = g.W / 2 + 'mm'; destino.appendChild(l); pos.v.push(g.W / 2); }
+      if (!pos.h.length) { const l = document.createElement('div'); l.className = 'corte-h'; l.style.top = g.H / 2 + 'mm'; destino.appendChild(l); pos.h.push(g.H / 2); }
+      const regla = (horizontal, x0, y0) => {
+        const r = document.createElement('div');
+        r.className = 'regla ' + (horizontal ? 'regla-h' : 'regla-v');
+        let html = '';
+        for (let k = -15; k <= 15; k++) {
+          const largo = k === 0 ? 7 : k % 5 === 0 ? 5 : 2.5;
+          html += horizontal
+            ? `<i style="left:${x0 + k}mm;top:${y0 - largo / 2}mm;height:${largo}mm"></i>`
+            : `<i style="top:${y0 + k}mm;left:${x0 - largo / 2}mm;width:${largo}mm"></i>`;
+          if (k % 5 === 0 && k !== 0) {
+            html += horizontal
+              ? `<b style="left:${x0 + k}mm;top:${y0 + 3}mm">${k > 0 ? '+' + k : k}</b>`
+              : `<b style="top:${y0 + k}mm;left:${x0 + 3}mm">${k > 0 ? '+' + k : k}</b>`;
+          }
+        }
+        r.innerHTML = html;
+        destino.appendChild(r);
+      };
+      // Posiciones distintas en cada sentido para que las reglas no se crucen donde se cruzan las líneas
+      pos.v.forEach((x) => [0.2, 0.42, 0.8].forEach((f) => regla(true, x, g.H * f)));
+      pos.h.forEach((y) => [0.2, 0.62, 0.8].forEach((f) => regla(false, g.W * f, y)));
+      // Texto en la primera celda que no tape las reglas
+      const t = document.createElement('div');
+      t.className = 'prueba-texto';
+      t.style.width = Math.min(g.celdaW, g.W / 2) - 16 + 'mm';
+      t.style.left = '8mm'; t.style.right = 'auto';
+      t.style.top = (pos.h.length && g.filas > 1 ? g.celdaH / 2 : g.H * 0.35) + 'mm';
+      t.innerHTML = lado === 'frente'
+        ? '<strong>FRENTE</strong>Imprime esta prueba a dos caras con escala 100 %.'
+        : '<strong>REVERSO</strong>Mira este lado contra la luz. Donde se ve la línea del frente, lee el número en esta regla: ese valor va en «Mover reverso» (↔ para las reglas horizontales, ↕ para las verticales).';
+      destino.appendChild(t);
+    }
+
+    function agregarBloque(hoja, lado, g) {
+      const bloque = document.createElement('section');
+      bloque.className = 'hoja-bloque bloque-' + lado;
+      bloque.dataset.lado = lado;
+      const papel = HOJAS[estado.hoja];
+      const extra = modoPrueba ? ' · <b>hoja de prueba</b>'
+        : lado === 'reverso' && (calibracion.x || calibracion.y) ? ` · corrido ${fmtMm(calibracion.x)} ↔ ${fmtMm(calibracion.y)} ↕` : '';
+      bloque.innerHTML = `<div class="hoja-etiqueta"><span class="tag">${lado === 'frente' ? 'Frente' : 'Reverso'}</span>` +
+        `${papel.nombre} ${g.hojaVertical ? 'vertical' : 'horizontal'} · ${g.n} ${g.n === 1 ? 'pieza' : 'piezas'}${extra}</div>`;
+      const escala = document.createElement('div');
+      escala.className = 'hoja-escala';
+      escala.appendChild(hoja);
+      bloque.appendChild(escala);
+      vista.appendChild(bloque);
+    }
+    const fmtMm = (v) => (v > 0 ? '+' : '') + String(v).replace('.', ',') + ' mm';
+
+    // Calibración del dúplex: es de la impresora, no del diseño, así que vive en localStorage
+    let modoPrueba = false;
+    const calibracion = { x: 0, y: 0 };
+    try {
+      const c = JSON.parse(localStorage.getItem('afiches.calibracion') || '{}');
+      calibracion.x = Number(c.x) || 0; calibracion.y = Number(c.y) || 0;
+    } catch (e) { /* sin almacenamiento */ }
+    function sincronizarCalibracion() {
+      $('#ajusteX').value = calibracion.x; $('#ajusteY').value = calibracion.y;
+      $('#chkPrueba').checked = modoPrueba;
+    }
+    document.addEventListener('input', (ev) => {
+      const id = ev.target.id;
+      if (id === 'ajusteX' || id === 'ajusteY') {
+        const v = Math.max(-20, Math.min(20, Number(String(ev.target.value).replace(',', '.')) || 0));
+        calibracion[id === 'ajusteX' ? 'x' : 'y'] = v;
+        try { localStorage.setItem('afiches.calibracion', JSON.stringify(calibracion)); } catch (e) { }
+        clearTimeout(temporizador);
+        temporizador = setTimeout(render, 90);
+      }
+    });
+    document.addEventListener('change', (ev) => {
+      if (ev.target.id !== 'chkPrueba') return;
+      modoPrueba = ev.target.checked;
+      if (modoPrueba && estado.caras !== 'dos') { estado.caras = 'dos'; sincronizarUI(); }
+      render();
+      toast(modoPrueba ? 'Hoja de prueba lista: imprímela a dos caras («Ambas caras»)' : 'De vuelta a tu diseño');
+    });
 
     function ajustarEscala() {
       const escalas = $$('.hoja-escala', vista);
@@ -2791,6 +2910,7 @@
         if (guardado && guardado.estado) estado = completarEstado(guardado.estado);
       } catch (e) { }
       sincronizarUI();
+      sincronizarCalibracion();
       render();
     })();
   </script>
