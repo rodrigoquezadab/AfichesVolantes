@@ -40,6 +40,10 @@ Abriendo `index.html` con doble clic, las imágenes de la biblioteca se ven y se
 - **Estilo:** 7 fuentes del sistema, alineación, posición vertical, colores, fondo, marco y espacio interior.
 - **Imagen:** ajustar, cubrir o estirar; giro manual o automático.
 - **Dos caras:** frente y reverso con instrucciones para la impresora (voltear por el borde largo o corto), opción de imprimir solo frentes y luego solo reversos, y giro de 180° del reverso.
+- **📝 Documento para LibreOffice Writer (.odt):** descarga el diseño como documento.
+  - La página no tiene márgenes y una tabla ocupa la hoja completa, con la línea de corte como borde entre celdas. Así la línea queda **exactamente en la mitad** (o en los cuartos) de la página en las dos caras.
+  - Página 1 es el frente y página 2 el reverso. Se imprime desde Writer a dos caras.
+  - Conserva fuentes, tamaños, negritas, cursivas, viñetas, numerales y colores.
 - **Alinear el reverso con la impresora:** muchas impresoras corren o achican el reverso.
   - En **📐 Formato → Caras** hay una **hoja de prueba** con reglas en milímetros sobre las líneas de corte.
   - Se imprime a dos caras, se mira el reverso contra la luz y se lee cuánto se corre la línea del frente.

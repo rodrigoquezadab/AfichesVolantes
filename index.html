@@ -651,6 +651,8 @@
       <button class="btn btn-oscuro" onclick="imprimir()" title="Imprimir (Ctrl + P)">🖨️ Imprimir</button>
       <button class="btn btn-primario" onclick="guardarPDF()"
         title="Abre el diálogo de impresión: elige «Guardar como PDF» como destino">📥 PDF</button>
+      <button class="btn btn-sec" onclick="descargarWriter()"
+        title="Descarga un documento .odt para LibreOffice Writer: la línea de corte queda exactamente al medio de la página">📝 Writer</button>
       <button class="btn btn-sec" onclick="descargarImagen()" title="Descarga cada hoja como imagen a 300 ppp">🖼️ Imagen</button>
       <select class="selector-mini" data-k="formatoImagen" title="Formato de la imagen descargada">
         <option value="png">PNG</option>
@@ -2546,6 +2548,261 @@
         toast(bloques.length > 1 ? 'Se descargaron las dos caras' : 'Imagen descargada');
       } catch (e) {
         toast('No se pudo crear la imagen: ' + e.message);
+      }
+    }
+
+    // ---------- Documento para LibreOffice Writer (.odt) ----------
+    // La página no tiene márgenes y una tabla con celdas de alto exacto ocupa la hoja completa:
+    // las líneas de corte son los bordes entre celdas, por lo que caen exactamente en la mitad
+    // (o en los cuartos) de la página, sin depender de la escala del navegador ni del PDF.
+    // Página 1 = frente, página 2 = reverso. Se escribe un ZIP sin compresión con su CRC32.
+    const FUENTES_WRITER = {
+      moderna: 'Segoe UI', impacto: 'Arial Black', clasica: 'Georgia', elegante: 'Palatino Linotype',
+      manuscrita: 'Segoe Script', amable: 'Trebuchet MS', maquina: 'Courier New',
+    };
+    const TABLA_CRC = (() => {
+      const t = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+      return t;
+    })();
+    function crc32(u8) {
+      let c = 0xffffffff;
+      for (let i = 0; i < u8.length; i++) c = TABLA_CRC[(c ^ u8[i]) & 0xff] ^ (c >>> 8);
+      return (c ^ 0xffffffff) >>> 0;
+    }
+    function crearZip(archivos) {
+      const enc = new TextEncoder(), partes = [], central = [];
+      let off = 0;
+      for (const a of archivos) {
+        const datos = typeof a.datos === 'string' ? enc.encode(a.datos) : a.datos;
+        const nombre = enc.encode(a.nombre), crc = crc32(datos);
+        const loc = new DataView(new ArrayBuffer(30));
+        loc.setUint32(0, 0x04034b50, true); loc.setUint16(4, 20, true); loc.setUint16(6, 0x0800, true);
+        loc.setUint16(12, 33, true); loc.setUint32(14, crc, true);
+        loc.setUint32(18, datos.length, true); loc.setUint32(22, datos.length, true); loc.setUint16(26, nombre.length, true);
+        const cen = new DataView(new ArrayBuffer(46));
+        cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true); cen.setUint16(8, 0x0800, true);
+        cen.setUint16(14, 33, true); cen.setUint32(16, crc, true);
+        cen.setUint32(20, datos.length, true); cen.setUint32(24, datos.length, true); cen.setUint16(28, nombre.length, true);
+        cen.setUint32(42, off, true);
+        partes.push(new Uint8Array(loc.buffer), nombre, datos);
+        central.push(new Uint8Array(cen.buffer), nombre);
+        off += 30 + nombre.length + datos.length;
+      }
+      const tam = central.reduce((s, p) => s + p.length, 0);
+      const fin = new DataView(new ArrayBuffer(22));
+      fin.setUint32(0, 0x06054b50, true); fin.setUint16(8, archivos.length, true); fin.setUint16(10, archivos.length, true);
+      fin.setUint32(12, tam, true); fin.setUint32(16, off, true);
+      return new Blob([...partes, ...central, new Uint8Array(fin.buffer)], { type: 'application/vnd.oasis.opendocument.text' });
+    }
+    const escX = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const mm = (v) => (+v).toFixed(3) + 'mm';
+    const pt = (v) => (+v).toFixed(2) + 'pt';
+
+    // Tamaño de letra (px) que la app calcula para una cara, el mismo que se ve en pantalla
+    function tamanoCalculado(c, g) {
+      const cara = crearCara(c, g.piezaW, g.piezaH);
+      cara.lang = 'es';
+      medidor.appendChild(cara);
+      ajustarTexto(cara, c);
+      const caja = cara.querySelector('.cara-texto');
+      const px = caja ? parseFloat(caja.style.fontSize) || 16 : 16;
+      medidor.removeChild(cara);
+      return px;
+    }
+
+    async function crearOdt() {
+      const g = geometria(estado);
+      const estilosAuto = [], cacheEstilos = new Map(), imagenes = [], fuentes = new Set();
+      const estilo = (familia, prefijo, propiedades) => {
+        const clave = familia + propiedades;
+        if (!cacheEstilos.has(clave)) {
+          const nombre = prefijo + (cacheEstilos.size + 1);
+          cacheEstilos.set(clave, nombre);
+          estilosAuto.push(`<style:style style:name="${nombre}" style:family="${familia}">${propiedades}</style:style>`);
+        }
+        return cacheEstilos.get(clave);
+      };
+      const ALIN = { left: 'start', center: 'center', right: 'end', justify: 'justify' };
+      // Estilo de párrafo: tamaño, alto de línea exacto (igual que en la app) y espacios
+      const estiloP = ({ fuente, tam, color, alin, alto, antes = 0, despues = 0, negrita, mayus, sangria = 0, primera = 0, guiones }) => {
+        fuentes.add(fuente);
+        return estilo('paragraph', 'P',
+          `<style:paragraph-properties fo:text-align="${ALIN[alin] || 'start'}" fo:line-height="${pt(alto)}" ` +
+          `fo:margin-top="${pt(antes)}" fo:margin-bottom="${pt(despues)}" fo:margin-left="${pt(sangria)}" fo:text-indent="${pt(primera)}" ` +
+          `fo:orphans="1" fo:widows="1"/>` +
+          `<style:text-properties style:font-name="${escX(fuente)}" fo:font-size="${pt(tam)}" fo:color="${color}" ` +
+          `fo:language="es" fo:country="CL" fo:hyphenate="${guiones ? 'true' : 'false'}"` +
+          `${negrita ? ' fo:font-weight="bold"' : ''}${mayus ? ' fo:text-transform="uppercase"' : ''}/>`);
+      };
+      const T_NEG = estilo('text', 'T', '<style:text-properties fo:font-weight="bold"/>');
+      const T_CUR = estilo('text', 'T', '<style:text-properties fo:font-style="italic"/>');
+      const enLineaOdt = (s) => escX(s)
+        .replace(/\*\*(.+?)\*\*/g, `<text:span text:style-name="${T_NEG}">$1</text:span>`)
+        .replace(/(^|[^*])\*(?!\s)([^*]+?)\*/g, `$1<text:span text:style-name="${T_CUR}">$2</text:span>`);
+      const lineasOdt = (s, fn) => s.replace(/\r/g, '').split('\n').map(fn || enLineaOdt).join('<text:line-break/>');
+
+      async function imagenOdt(c, anchoMax, altoMax) {
+        const src = c.imagen && c.imagen.src;
+        if (!src) return '';
+        let bytes, tipo;
+        try {
+          const blob = await (await fetch(src)).blob();
+          bytes = new Uint8Array(await blob.arrayBuffer());
+          tipo = blob.type || 'image/png';
+        } catch (e) { return ''; }
+        const ext = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp', 'image/svg+xml': 'svg', 'image/bmp': 'bmp' }[tipo] || 'png';
+        const ruta = `Pictures/imagen${imagenes.length + 1}.${ext}`;
+        imagenes.push({ ruta, bytes, tipo });
+        const f = Math.min(anchoMax / c.imagen.w, altoMax / c.imagen.h);
+        const w = c.imagen.w * f, h = c.imagen.h * f;
+        const pc = estilo('paragraph', 'P', '<style:paragraph-properties fo:text-align="center" fo:margin-top="0mm" fo:margin-bottom="0mm" fo:line-height="100%"/>');
+        const marco = estilo('graphic', 'G', '<style:graphic-properties style:vertical-pos="top" style:vertical-rel="baseline" fo:border="none" fo:padding="0mm"/>');
+        return `<text:p text:style-name="${pc}"><draw:frame draw:style-name="${marco}" text:anchor-type="as-char" svg:width="${mm(w)}" svg:height="${mm(h)}">` +
+          `<draw:image xlink:href="${ruta}" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/></draw:frame></text:p>`;
+      }
+
+      // Contenido de una pieza (lo mismo en cada celda de la hoja)
+      async function contenidoCara(c) {
+        const disp = disposicionEfectiva(c);
+        const pad = Math.min(g.piezaW, g.piezaH) * c.interior / 100;
+        const anchoUtil = g.piezaW - 2 * pad, altoUtil = g.piezaH - 2 * pad;
+        // 3 % más chico que en pantalla: Writer corta las líneas un poco distinto que el navegador
+        const base = tamanoCalculado(c, g) * 0.75 * 0.97;
+        const fT = FUENTES_WRITER[c.fuenteTitulo] || 'Segoe UI', fX = FUENTES_WRITER[c.fuenteTexto] || 'Segoe UI';
+        const alinT = c.alinear === 'justify' ? 'left' : c.alinear;
+        let xml = '';
+        if (c.titulo && c.titulo.trim()) {
+          const tam = base * c.proporcionTitulo;
+          xml += `<text:p text:style-name="${estiloP({ fuente: fT, tam, color: c.colorTitulo, alin: alinT, alto: tam * 1.08, despues: tam * 0.25, negrita: true, mayus: c.mayusculas })}">${lineasOdt(c.titulo)}</text:p>`;
+        }
+        if (c.subtitulo && c.subtitulo.trim()) {
+          const tam = base * 1.3;
+          xml += `<text:p text:style-name="${estiloP({ fuente: fT, tam, color: c.colorTitulo, alin: alinT, alto: tam * 1.15, despues: tam * 0.6, negrita: true })}">${lineasOdt(c.subtitulo)}</text:p>`;
+        }
+        const alto = base * c.interlineado, esp = base * c.espacioParrafos, guiones = c.alinear === 'justify';
+        const bloques = (c.cuerpo || '').replace(/\r/g, '').split(/\n\s*\n/).map((b) => b.split('\n').filter((l) => l.trim()))
+          .filter((b) => b.length);
+        const vineta = /^\s*[-•]\s+/, numero = /^\s*(\d{1,3}|[a-zA-Z])[.)]\s+/;
+        const T_SEC = estilo('text', 'T', `<style:text-properties fo:font-weight="bold" fo:color="${c.colorTitulo}"/>`);
+        bloques.forEach((lineas, k) => {
+          const ultimo = k === bloques.length - 1;
+          const p = (extra) => estiloP({ fuente: fX, tam: base, color: c.colorTexto, alin: c.alinear, alto, guiones, ...extra });
+          if (lineas.every((l) => vineta.test(l)) || lineas.every((l) => numero.test(l))) {
+            const conVineta = vineta.test(lineas[0]);
+            const sangria = (conVineta ? 1.2 : 1.45) * base;
+            lineas.forEach((l, j) => {
+              const fin = j === lineas.length - 1;
+              const st = p({ sangria, primera: -sangria * (conVineta ? 0.75 : 1), despues: fin && !ultimo ? esp : base * (conVineta ? 0.15 : 0.12) });
+              const m = l.match(conVineta ? vineta : numero);
+              const marca = conVineta ? '•' : `<text:span text:style-name="${T_NEG}">${escX(m[1])}.</text:span>`;
+              xml += `<text:p text:style-name="${st}">${marca}<text:s/>${enLineaOdt(l.slice(m[0].length))}</text:p>`;
+            });
+          } else {
+            const linea = (l) => /^\s*\*\*[^*]+\*\*\s*$/.test(l)
+              ? `<text:span text:style-name="${T_SEC}">${escX(l.trim().slice(2, -2))}</text:span>` : enLineaOdt(l);
+            xml += `<text:p text:style-name="${p({ despues: ultimo ? 0 : esp })}">${lineas.map(linea).join('<text:line-break/>')}</text:p>`;
+          }
+        });
+        if (c.pie && c.pie.trim()) {
+          const tam = base * 0.8;
+          xml += `<text:p text:style-name="${estiloP({ fuente: fX, tam, color: c.colorTexto, alin: alinT, alto: tam * c.interlineado, antes: base * 0.8, negrita: true })}">${lineasOdt(c.pie)}</text:p>`;
+        }
+        if (disp !== 'texto' && c.imagen) {
+          const soloImg = disp === 'imagen';
+          const altoImg = soloImg || disp === 'texto-sobre-imagen' ? altoUtil * (disp === 'imagen' ? 1 : 0.5)
+            : (c.posImagen === 'arriba' || c.posImagen === 'abajo' ? altoUtil * c.espacioImagen / 100 : altoUtil * 0.5);
+          const img = await imagenOdt(c, anchoUtil, altoImg - (soloImg ? 0 : 2));
+          if (soloImg) xml = img;
+          else if (c.posImagen === 'abajo') xml += img;
+          else xml = img + xml;
+        }
+        return { xml: xml || '<text:p/>', pad };
+      }
+
+      // Una hoja: tabla de filas × columnas con alto exacto y bordes de corte entre celdas
+      async function tablaHoja(lado, n) {
+        const c = estado[lado];
+        const { xml, pad } = await contenidoCara(c);
+        const vAlin = { arriba: 'top', centro: 'middle', abajo: 'bottom', repartido: 'top' }[c.vertical] || 'top';
+        const corte = '0.3mm dashed #9ca3af';
+        const tabla = estilo('table', 'Tabla',
+          `<style:table-properties style:width="${mm(g.W)}" table:align="left" fo:margin-left="0mm" fo:margin-top="0mm" fo:margin-bottom="0mm"` +
+          `${n > 0 ? ' fo:break-before="page"' : ''} table:border-model="collapsing"/>`);
+        const col = estilo('table-column', 'Col', `<style:table-column-properties style:column-width="${mm(g.celdaW)}"/>`);
+        let filas = '';
+        for (let r = 0; r < g.filas; r++) {
+          // La última fila es 1,2 mm más baja para que el párrafo final no cree una página en blanco
+          const altoFila = r === g.filas - 1 ? g.celdaH - 1.2 : g.celdaH;
+          const fila = estilo('table-row', 'Fila', `<style:table-row-properties style:row-height="${mm(altoFila)}" fo:keep-together="always"/>`);
+          let celdas = '';
+          for (let k = 0; k < g.cols; k++) {
+            const der = estado.corte && k < g.cols - 1 ? corte : 'none';
+            const abajo = estado.corte && r < g.filas - 1 ? corte : 'none';
+            const fondo = c.fondo && c.fondo.toLowerCase() !== '#ffffff' ? ` fo:background-color="${c.fondo}"` : '';
+            const celda = estilo('table-cell', 'Celda',
+              `<style:table-cell-properties style:vertical-align="${vAlin}" fo:padding="${mm(g.margen + pad)}" ` +
+              `fo:border-left="none" fo:border-top="none" fo:border-right="${der}" fo:border-bottom="${abajo}"${fondo}/>`);
+            celdas += `<table:table-cell table:style-name="${celda}" office:value-type="string">${xml}</table:table-cell>`;
+          }
+          filas += `<table:table-row table:style-name="${fila}">${celdas}</table:table-row>`;
+        }
+        return `<table:table table:name="${lado === 'frente' ? 'Frente' : 'Reverso'}" table:style-name="${tabla}">` +
+          `<table:table-column table:style-name="${col}" table:number-columns-repeated="${g.cols}"/>${filas}</table:table>`;
+      }
+
+      let cuerpo = '';
+      const lados = ladosVisibles();
+      for (let i = 0; i < lados.length; i++) cuerpo += await tablaHoja(lados[i], i);
+      const pFin = estilo('paragraph', 'P', '<style:paragraph-properties fo:margin-top="0mm" fo:margin-bottom="0mm" fo:line-height="0.3mm"/><style:text-properties fo:font-size="1pt"/>');
+      cuerpo += `<text:p text:style-name="${pFin}"/>`;
+
+      const NS = 'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" ' +
+        'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" ' +
+        'xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" ' +
+        'xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" ' +
+        'xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:dc="http://purl.org/dc/elements/1.1/"';
+      const caras = [...fuentes].map((f) => `<style:font-face style:name="${escX(f)}" svg:font-family="'${escX(f)}'"/>`).join('');
+      const content = `<?xml version="1.0" encoding="UTF-8"?><office:document-content ${NS} office:version="1.3">` +
+        `<office:font-face-decls>${caras}</office:font-face-decls>` +
+        `<office:automatic-styles>${estilosAuto.join('')}</office:automatic-styles>` +
+        `<office:body><office:text>${cuerpo}</office:text></office:body></office:document-content>`;
+      const styles = `<?xml version="1.0" encoding="UTF-8"?><office:document-styles ${NS} office:version="1.3">` +
+        `<office:font-face-decls>${caras}</office:font-face-decls>` +
+        `<office:styles><style:default-style style:family="paragraph"><style:text-properties fo:language="es" fo:country="CL"/></style:default-style></office:styles>` +
+        `<office:automatic-styles><style:page-layout style:name="Hoja"><style:page-layout-properties fo:page-width="${mm(g.W)}" fo:page-height="${mm(g.H)}" ` +
+        `style:print-orientation="${g.W > g.H ? 'landscape' : 'portrait'}" fo:margin-top="0mm" fo:margin-bottom="0mm" fo:margin-left="0mm" fo:margin-right="0mm"/>` +
+        `</style:page-layout></office:automatic-styles>` +
+        `<office:master-styles><style:master-page style:name="Standard" style:page-layout-name="Hoja"/></office:master-styles></office:document-styles>`;
+      const meta = `<?xml version="1.0" encoding="UTF-8"?><office:document-meta ${NS} office:version="1.3"><office:meta>` +
+        `<dc:title>${escX(estado.nombre || estado.frente.titulo || 'Afiche')}</dc:title><meta:generator>Afiches y Volantes</meta:generator></office:meta></office:document-meta>`;
+      const manifest = `<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.3">` +
+        `<manifest:file-entry manifest:full-path="/" manifest:version="1.3" manifest:media-type="application/vnd.oasis.opendocument.text"/>` +
+        `<manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>` +
+        `<manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/>` +
+        `<manifest:file-entry manifest:full-path="meta.xml" manifest:media-type="text/xml"/>` +
+        imagenes.map((im) => `<manifest:file-entry manifest:full-path="${im.ruta}" manifest:media-type="${im.tipo}"/>`).join('') +
+        `</manifest:manifest>`;
+      return crearZip([
+        { nombre: 'mimetype', datos: 'application/vnd.oasis.opendocument.text' },
+        { nombre: 'content.xml', datos: content },
+        { nombre: 'styles.xml', datos: styles },
+        { nombre: 'meta.xml', datos: meta },
+        ...imagenes.map((im) => ({ nombre: im.ruta, datos: im.bytes })),
+        { nombre: 'META-INF/manifest.xml', datos: manifest },
+      ]);
+    }
+
+    async function descargarWriter() {
+      clearTimeout(temporizador);
+      render();
+      try {
+        const blob = await crearOdt();
+        descargarBlob(blob, nombreArchivo() + '.odt');
+        toast('Documento descargado: ábrelo en LibreOffice Writer e imprime a dos caras, escala 100 %');
+      } catch (e) {
+        console.error(e);
+        toast('No se pudo crear el documento: ' + e.message);
       }
     }
 

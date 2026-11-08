@@ -82,6 +82,19 @@ Nace de la fusión de dos apps del usuario:
     - Instrucción: mirar el reverso contra la luz y leer en su regla dónde cae la línea del frente.
     - El panel recuerda imprimir con escala 100 % y márgenes «Ninguno».
 
+- **v1.5.0 (09-11-2026):** botón **📝 Writer**, que descarga un `.odt`.
+  - **Motivo:** el usuario prefiere imprimir desde LibreOffice Writer y que la línea de corte quede siempre al medio, sin medir ni calibrar.
+  - **Página:** sin márgenes, con una tabla por cara (`break-before: page` en el reverso), columnas del ancho de la celda y filas de alto exacto.
+    - Las líneas de corte son bordes `dashed` entre celdas: en el PDF de LibreOffice la línea queda en x = 396,0 pt de 792 pt, el centro exacto, en las dos páginas.
+    - La última fila es 1,2 mm más baja y el párrafo final mide 1 pt, para que Writer no agregue una página en blanco.
+  - **Contenido de cada celda:**
+    - Padding = margen + espacio interior.
+    - Tamaño de letra = el que calcula la app × 0,97, con alto de línea exacto (pt × interlineado) para que coincida con la vista.
+    - Viñetas y numerales con sangría colgante, y líneas enteras en negrita con el color del título.
+    - Imagen como `draw:frame` arriba o abajo del texto.
+  - **ZIP:** se escribe sin compresión, con CRC32 propio y `mimetype` primero.
+  - **Limitaciones:** no reproduce el marco, el giro de 180° del reverso ni el texto encima de la imagen; la imagen va arriba.
+
 ## Ideas pendientes
 
 - Varias piezas distintas en una misma hoja (por ejemplo, 4 oraciones diferentes).
