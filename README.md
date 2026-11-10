@@ -24,7 +24,9 @@ Abriendo `index.html` con doble clic, las imágenes de la biblioteca se ven y se
 
 ## Funciones
 
-- **Tamaños de pieza:** Afiche (hoja completa), Flyer (media hoja, 2 por hoja), Volante (un cuarto, 4 por hoja) y Tarjeta (un octavo, 8 por hoja), en orientación vertical u horizontal. La hoja se gira sola para que las piezas aprovechen el papel.
+- **Tamaños de pieza:**
+  - Afiche (hoja completa), Flyer (media hoja, 2 por hoja), Volante (un cuarto, 4 por hoja) y Tarjeta (un octavo, 8 por hoja), en orientación vertical u horizontal. La hoja se gira sola para que las piezas aprovechen el papel.
+  - **🔢 Filas × columnas:** eliges cuántas filas y columnas (de 1 a 10) y la orientación de la hoja. La app calcula la medida de cada pieza y el margen.
 - **Papeles:** Carta, Oficio (21,6 × 33 cm), Legal, A4, A3 y Tabloide.
 - **Contenido:** solo texto, solo imagen, imagen y texto (arriba, abajo, izquierda o derecha) o texto sobre la imagen.
 - **Texto que siempre cabe:** el tamaño de la letra se calcula solo para llenar la pieza; un control permite achicarlo. Admite párrafos, **negrita**, *cursiva* y viñetas con «- ».

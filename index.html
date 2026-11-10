@@ -253,6 +253,13 @@
     .segmentos button.activo { background: var(--chip); color: var(--chip-texto); box-shadow: inset 0 -2px 0 var(--primario); }
 
     .formatos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .solo-grilla { display: none; }
+    [data-formato="grilla"] .solo-grilla { display: block; }
+    [data-formato="grilla"] .sin-grilla { display: none; }
+    .grilla-hoja { border: 1px dashed var(--borde-2); border-radius: 10px; padding: 10px 12px 2px; margin-bottom: 10px; }
+    .contador { display: flex; align-items: center; gap: 6px; }
+    .contador input { width: 100%; min-width: 0; text-align: center; padding: 6px 4px; border-radius: 8px; border: 1px solid var(--borde-2); background: var(--panel-2); font-size: 15px; font-weight: 700; }
+    .contador .btn { flex: 0 0 auto; width: 32px; justify-content: center; font-size: 15px; }
     .tarjeta-formato {
       text-align: left;
       background: var(--campo);
@@ -695,7 +702,32 @@
           <section class="sec">
             <h3>Tamaño de cada pieza</h3>
             <div class="formatos" id="formatos"></div>
-            <div class="campo">
+            <div class="solo-grilla grilla-hoja">
+              <div class="campos-2">
+                <div class="campo"><span>Filas</span>
+                  <span class="contador">
+                    <button type="button" class="btn btn-sec btn-sm" onclick="pasoGrilla('filasHoja', -1)" aria-label="Una fila menos">−</button>
+                    <input type="number" min="1" max="10" step="1" data-k="filasHoja" aria-label="Número de filas">
+                    <button type="button" class="btn btn-sec btn-sm" onclick="pasoGrilla('filasHoja', 1)" aria-label="Una fila más">＋</button>
+                  </span>
+                </div>
+                <div class="campo"><span>Columnas</span>
+                  <span class="contador">
+                    <button type="button" class="btn btn-sec btn-sm" onclick="pasoGrilla('colsHoja', -1)" aria-label="Una columna menos">−</button>
+                    <input type="number" min="1" max="10" step="1" data-k="colsHoja" aria-label="Número de columnas">
+                    <button type="button" class="btn btn-sec btn-sm" onclick="pasoGrilla('colsHoja', 1)" aria-label="Una columna más">＋</button>
+                  </span>
+                </div>
+              </div>
+              <div class="campo">
+                <span>Orientación de la hoja</span>
+                <div class="segmentos">
+                  <button data-set="orientacionHoja" data-v="vertical">▯<span>Vertical</span></button>
+                  <button data-set="orientacionHoja" data-v="horizontal">▭<span>Horizontal</span></button>
+                </div>
+              </div>
+            </div>
+            <div class="campo sin-grilla">
               <span>Orientación de la pieza</span>
               <div class="segmentos">
                 <button data-set="orientacion" data-v="vertical">▯<span>Vertical</span></button>
@@ -834,6 +866,7 @@
       mitad: { n: 2, nombre: 'Flyer', detalle: 'Media hoja · 2 por hoja', ico: '📄', margen: 8 },
       cuarto: { n: 4, nombre: 'Volante', detalle: 'Un cuarto · 4 por hoja', ico: '🙏', margen: 6 },
       octavo: { n: 8, nombre: 'Tarjeta', detalle: 'Un octavo · 8 por hoja', ico: '🎟️', margen: 5 },
+      grilla: { n: 0, nombre: 'Filas × columnas', detalle: 'Tú eliges cuántas', ico: '🔢', margen: 0 },
     };
 
     const FUENTES = {
@@ -879,6 +912,8 @@
         corte: true,
         caras: 'una',
         reversoGirado: false,
+        filasHoja: 2, colsHoja: 2,     // formato «Filas × columnas»
+        orientacionHoja: 'vertical',
         imprimir: 'ambas',
         formatoImagen: 'png',
         frente: caraBase({
@@ -981,9 +1016,27 @@
 
     // ---------- Geometría ----------
     // Cada vez que se divide la hoja por la mitad, la pieza cambia de orientación.
+    // Margen automático según el lado más corto de cada celda (para la grilla personalizada)
+    function margenSegunCelda(lado) { return lado >= 200 ? 10 : lado >= 120 ? 8 : lado >= 80 ? 6 : lado >= 50 ? 5 : 3; }
+
     function geometria(e) {
       const papel = HOJAS[e.hoja];
       const f = FORMATOS[e.formato];
+      if (e.formato === 'grilla') {
+        // Filas y columnas elegidas a mano, con la orientación de la hoja también a mano
+        const filas = Math.max(1, Math.min(10, Math.round(Number(e.filasHoja) || 1)));
+        const cols = Math.max(1, Math.min(10, Math.round(Number(e.colsHoja) || 1)));
+        const hojaVertical = e.orientacionHoja !== 'horizontal';
+        const W = hojaVertical ? papel.w : papel.h, H = hojaVertical ? papel.h : papel.w;
+        const celdaW = W / cols, celdaH = H / filas;
+        const margenAuto = margenSegunCelda(Math.min(celdaW, celdaH));
+        const margen = e.margen === 'auto' ? margenAuto : Number(e.margen);
+        return {
+          W, H, filas, cols, celdaW, celdaH, margen, margenAuto, hojaVertical, n: filas * cols,
+          piezaW: Math.max(10, celdaW - 2 * margen),
+          piezaH: Math.max(10, celdaH - 2 * margen),
+        };
+      }
       const k = Math.round(Math.log2(f.n));
       const piezaVertical = e.orientacion === 'vertical';
       const hojaVertical = piezaVertical === (k % 2 === 0);
@@ -994,7 +1047,7 @@
       const celdaW = W / cols, celdaH = H / filas;
       const margen = e.margen === 'auto' ? f.margen : Number(e.margen);
       return {
-        W, H, filas, cols, celdaW, celdaH, margen, hojaVertical, n: f.n,
+        W, H, filas, cols, celdaW, celdaH, margen, margenAuto: f.margen, hojaVertical, n: f.n,
         piezaW: Math.max(10, celdaW - 2 * margen),
         piezaH: Math.max(10, celdaH - 2 * margen),
       };
@@ -1316,18 +1369,21 @@
       const papel = HOJAS[estado.hoja];
       const f = FORMATOS[estado.formato];
       $('#resumen').innerHTML =
-        `Cada pieza mide <b>${cm(g.celdaW)} × ${cm(g.celdaH)} cm</b> (${f.n} por hoja ${papel.nombre} ${g.hojaVertical ? 'vertical' : 'horizontal'}).<br>` +
-        `Área de diseño: <b>${cm(g.piezaW)} × ${cm(g.piezaH)} cm</b>, con ${String(g.margen).replace('.', ',')} mm de margen hasta el borde${f.n > 1 ? ' y la línea de corte' : ''}.`;
+        `Cada pieza mide <b>${cm(g.celdaW)} × ${cm(g.celdaH)} cm</b> (${g.n} por hoja ${papel.nombre} ${g.hojaVertical ? 'vertical' : 'horizontal'}` +
+        `${g.n > 1 ? `: ${g.filas} ${g.filas === 1 ? 'fila' : 'filas'} × ${g.cols} ${g.cols === 1 ? 'columna' : 'columnas'}` : ''}).<br>` +
+        `Área de diseño: <b>${cm(g.piezaW)} × ${cm(g.piezaH)} cm</b>, con ${String(g.margen).replace('.', ',')} mm de margen hasta el borde${g.n > 1 ? ' y la línea de corte' : ''}.`;
 
       // Medidas en las tarjetas de formato
       Object.keys(FORMATOS).forEach((k) => {
         const gg = geometria(Object.assign({}, estado, { formato: k }));
         const m = $('#medida-' + k);
-        if (m) m.textContent = `${cm(gg.celdaW)} × ${cm(gg.celdaH)} cm`;
+        if (m) m.textContent = k === 'grilla'
+          ? `${gg.filas} × ${gg.cols} · ${cm(gg.celdaW)} × ${cm(gg.celdaH)} cm`
+          : `${cm(gg.celdaW)} × ${cm(gg.celdaH)} cm`;
       });
 
       const selMargen = $('#selMargen');
-      selMargen.options[0].textContent = `Automático (${f.margen} mm)`;
+      selMargen.options[0].textContent = `Automático (${g.margenAuto} mm)`;
 
       const borde = g.hojaVertical ? 'borde largo' : 'borde corto';
       $('#avisoDuplex').innerHTML =
@@ -1544,6 +1600,7 @@
           : 'Haz clic, arrastra o pega (Ctrl+V) una imagen';
       });
       $('#pestanaFormato').dataset.caras = estado.caras;
+      $('#pestanaFormato').dataset.formato = estado.formato;
       $('#selImprimir').style.display = estado.caras === 'dos' ? '' : 'none';
       $('#puntoReverso').hidden = estado.caras !== 'dos';
       $('#btnSegunImagen').style.display = estado.frente.imagen ? '' : 'none';
@@ -1585,6 +1642,12 @@
     document.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-set]');
       if (b) {
+        // Al pasar a «Filas × columnas» se parte de la grilla que se estaba usando
+        if (b.dataset.set === 'formato' && b.dataset.v === 'grilla' && estado.formato !== 'grilla') {
+          const g0 = geometria(estado);
+          estado.filasHoja = g0.filas; estado.colsHoja = g0.cols;
+          estado.orientacionHoja = g0.hojaVertical ? 'vertical' : 'horizontal';
+        }
         fijarRuta(b.dataset.set, b.dataset.v);
         cambio(true);
         return;
@@ -1603,6 +1666,11 @@
       PLANTILLAS[i].aplicar(estado);
       cambio(true);
       toast('Plantilla aplicada: ' + PLANTILLAS[i].nombre.replace(/^\S+\s/, ''));
+    }
+
+    function pasoGrilla(clave, paso) {
+      estado[clave] = Math.max(1, Math.min(10, (Math.round(Number(estado[clave])) || 1) + paso));
+      cambio(true);
     }
 
     function orientarSegunImagen() {

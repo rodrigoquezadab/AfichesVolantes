@@ -114,6 +114,13 @@ Nace de la fusión de dos apps del usuario:
   - **Biblioteca vieja en Chrome:** el usuario no veía los elementos nuevos porque Chrome guardaba una copia vieja de `biblioteca.js`. Ahora se carga con `document.write` y `?v=Date.now()`. Sigue siendo síncrono y funciona con `file://`.
   - **Detalle de las tarjetas:** dice «Hoja completa · Carta vertical · 1 cara» en vez de «Afiche · Carta», y se puede buscar por «vertical» u «horizontal».
 
+- **v1.7.0 (10-11-2026):** formato **«Filas × columnas»** (`formato: 'grilla'`).
+  - **Estado:** `filasHoja` y `colsHoja` (1 a 10) y `orientacionHoja`.
+  - **Geometría:** `geometria()` arma la grilla directo, sin la regla de dividir por la mitad. Margen automático según el lado más corto de la celda (`margenSegunCelda`): 10, 8, 6, 5 o 3 mm.
+  - **Al elegir la grilla:** se parte de la grilla del formato que se estaba usando.
+  - **Interfaz:** contadores − / ＋ y orientación de la hoja. «Orientación de la pieza» se oculta con `[data-formato="grilla"]`.
+  - **Salidas:** el resumen, la hoja de prueba y el `.odt` usan `g.filas` y `g.cols`. Verificado: con 3 × 2 en Writer salen 3 filas × 2 celdas por página, columnas de W/2 y filas de H/3.
+
 ## Ideas pendientes
 
 - Varias piezas distintas en una misma hoja (por ejemplo, 4 oraciones diferentes).
