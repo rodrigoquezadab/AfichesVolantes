@@ -812,7 +812,8 @@
     </div>
   </div>
 
-  <script src="biblioteca/biblioteca.js"></script>
+  <!-- Se carga con un número distinto cada vez para que el navegador no use una copia vieja de la biblioteca -->
+  <script>document.write('<script src="biblioteca/biblioteca.js?v=' + Date.now() + '"><\/script>');</script>
   <script>
     'use strict';
 
@@ -2945,7 +2946,8 @@
     }
     function detalleDiseno(d) {
       const f = FORMATOS[d.formato] || FORMATOS.completo;
-      return `${f.nombre} · ${(HOJAS[d.hoja] || HOJAS.carta).nombre} · ${d.caras === 'dos' ? '2 caras' : '1 cara'}`;
+      const g = geometria(Object.assign({}, estadoInicial(), d));
+      return `${f.detalle} · ${(HOJAS[d.hoja] || HOJAS.carta).nombre} ${g.hojaVertical ? 'vertical' : 'horizontal'} · ${d.caras === 'dos' ? '2 caras' : '1 cara'}`;
     }
 
     async function prepararElementosBiblio() {

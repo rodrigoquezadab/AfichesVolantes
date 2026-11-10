@@ -110,6 +110,10 @@ Nace de la fusión de dos apps del usuario:
   - **Tamaño:** dos columnas, interlineado 1,15, espacio entre párrafos 0,35 y margen de 8 mm. El reverso usa `tamano: 92` para que su letra iguale la del frente: unos 12,9 pt en las dos caras, frente a 9,2 pt en una página.
   - **Verificación:** las palabras son las mismas que en el folleto; en LibreOffice salen 2 páginas.
 
+- **v1.6.2 (10-11-2026):**
+  - **Biblioteca vieja en Chrome:** el usuario no veía los elementos nuevos porque Chrome guardaba una copia vieja de `biblioteca.js`. Ahora se carga con `document.write` y `?v=Date.now()`. Sigue siendo síncrono y funciona con `file://`.
+  - **Detalle de las tarjetas:** dice «Hoja completa · Carta vertical · 1 cara» en vez de «Afiche · Carta», y se puede buscar por «vertical» u «horizontal».
+
 ## Ideas pendientes
 
 - Varias piezas distintas en una misma hoja (por ejemplo, 4 oraciones diferentes).
