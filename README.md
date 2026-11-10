@@ -6,7 +6,7 @@ Es una aplicación de un solo archivo (`index.html`): se abre con doble clic en 
 
 ## Cómo usarla
 
-1. Abre `index.html` (doble clic, o con Live Server).
+1. Abre `index.html` (doble clic, o con Live Server). Se abre con la Oración del mes de María; «＋ Nuevo» en Mis diseños empieza un diseño en blanco (carta a doble cara, una columna).
 2. En **📐 Formato** elige el papel, el tamaño de cada pieza y su orientación, o usa una plantilla rápida.
 3. En **Frente** (y **Reverso** si es a dos caras) escribe el texto o cárgalo desde un documento, y/o agrega una imagen: haz clic en el recuadro, arrástrala o pégala con Ctrl+V.
 4. Imprime, guarda como PDF o descarga la hoja como imagen PNG/JPG a 300 ppp.
@@ -39,7 +39,7 @@ Abriendo `index.html` con doble clic, las imágenes de la biblioteca se ven y se
   - Elementos incluidos:
     - «📿 Oración mes de María»: folleto a dos caras en media carta.
     - «📄 Oración mes de María y Rosario (carta vertical)»: todo en una página carta, a dos columnas, en el orden original del documento.
-    - «📖 Oración mes de María y Rosario (carta, dos caras)»: hoja carta impresa por ambos lados, con letra de unos 13 pt y a dos columnas. Frente: oración inicial, rosario y Salve; reverso: misterios y oración final.
+    - «📖 Oración mes de María y Rosario (carta, dos caras)»: hoja carta impresa por ambos lados, con una columna por cara y letra de unos 12 pt. Frente: oración inicial, rosario y Salve; reverso: misterios y oración final. **Es el diseño que se abre por defecto.**
 - **Folletos y manuales a dos caras:** plantilla «📖 Folleto o manual (2 caras)», que deja media carta, frente y reverso, letra compacta, poco margen y texto desde arriba. Los pasos numerados («1. …») quedan con el número colgando y las líneas enteras en negrita se ven como encabezados con el color del título.
 - **Interlineado, espacio entre párrafos y texto en una o dos columnas**, ajustables en cada cara, para que un texto largo quepa con la letra más grande posible. Las dos columnas también pasan al documento de Writer.
 - **Estilo:** 7 fuentes del sistema, alineación, posición vertical, colores, fondo, marco y espacio interior.

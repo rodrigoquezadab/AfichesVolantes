@@ -121,6 +121,13 @@ Nace de la fusión de dos apps del usuario:
   - **Interfaz:** contadores − / ＋ y orientación de la hoja. «Orientación de la pieza» se oculta con `[data-formato="grilla"]`.
   - **Salidas:** el resumen, la hoja de prueba y el `.odt` usan `g.filas` y `g.cols`. Verificado: con 3 × 2 en Writer salen 3 filas × 2 celdas por página, columnas de W/2 y filas de H/3.
 
+- **v1.8.0 (10-11-2026):** se quitaron los ejemplos que traía la app desde la v1.0 («Fiesta de la Comunidad» y «Ángel de la Guarda»).
+  - **Al abrir:** `estadoInicial()` abre el elemento `ID_POR_DEFECTO` (`mes-de-maria-rosario-carta-2caras`) de la biblioteca.
+  - **Diseño en blanco:** `estadoVacio()` da carta vertical, dos caras y una columna. Lo usan «＋ Nuevo» y `completarEstado` para los valores que falten.
+  - **`estadoDesdeElemento()`:** función síncrona que se usa al abrir la app y al elegir un elemento de la biblioteca. Las imágenes por ruta se cargan después.
+  - **Autoguardado viejo:** si lo guardado es el ejemplo antiguo sin cambios, se descarta.
+  - **Elemento por defecto:** pasa a una columna por cara. El reverso usa `tamano: 85` para igualar la letra del frente: 12,2 pt en las dos caras. En LibreOffice salen 2 páginas.
+
 ## Ideas pendientes
 
 - Varias piezas distintas en una misma hoja (por ejemplo, 4 oraciones diferentes).

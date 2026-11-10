@@ -900,7 +900,8 @@
       }, extra || {});
     }
 
-    function estadoInicial() {
+    // Diseño en blanco: carta vertical a dos caras, una columna de texto por cara
+    function estadoVacio() {
       return {
         version: 1,
         nombre: '',
@@ -910,26 +911,38 @@
         orientacion: 'vertical',
         margen: 'auto',
         corte: true,
-        caras: 'una',
+        caras: 'dos',
         reversoGirado: false,
         filasHoja: 2, colsHoja: 2,     // formato «Filas × columnas»
         orientacionHoja: 'vertical',
         imprimir: 'ambas',
         formatoImagen: 'png',
-        frente: caraBase({
-          titulo: 'Fiesta de la Comunidad',
-          subtitulo: 'Sábado 15 de noviembre · 16:00 h',
-          cuerpo: 'Te invitamos a compartir una tarde en familia:\n\n- Misa de acción de gracias\n- Juegos para los niños\n- **Once comunitaria**\n\nTrae algo rico para compartir.',
-          pie: 'Salón parroquial · ¡Todos invitados!',
-        }),
-        reverso: caraBase({
-          titulo: 'Ángel de la Guarda',
-          cuerpo: 'Ángel de la guarda,\ndulce compañía,\nno me desampares\nni de noche ni de día.\n\nNo me dejes solo,\nque me perdería.\nAmén.',
-          fuenteTitulo: 'elegante', fuenteTexto: 'elegante',
-          proporcionTitulo: 1.7, marco: 'doble',
-          colorTitulo: '#7c2d12', colorTexto: '#292524', fondo: '#fffbeb',
-        }),
+        frente: caraBase(),
+        reverso: caraBase(),
       };
+    }
+
+    // Arma un estado a partir de un elemento de la biblioteca (sin cargar sus imágenes por ruta)
+    function estadoDesdeElemento(x) {
+      const e = estadoVacio();
+      e.formato = 'completo'; e.caras = 'una';
+      const base = { folleto: aplicarFolleto }[x.base];
+      if (base) base(e);
+      const { frente, reverso, ...general } = JSON.parse(JSON.stringify(x.diseno || {}));
+      Object.assign(e, general);
+      if (frente) Object.assign(e.frente, frente);
+      if (reverso) { Object.assign(e.reverso, reverso); e.caras = 'dos'; }
+      ['frente', 'reverso'].forEach((l) => { if (typeof e[l].imagen === 'string') e[l].imagen = null; });
+      e.nombre = x.nombre;
+      e.idGuardado = null;
+      return e;
+    }
+
+    // Al abrir la app por primera vez (o sin trabajo guardado) se muestra la Oración del mes de María
+    const ID_POR_DEFECTO = 'mes-de-maria-rosario-carta-2caras';
+    function estadoInicial() {
+      const x = (Array.isArray(window.BIBLIOTECA) ? window.BIBLIOTECA : []).find((b) => b && b.id === ID_POR_DEFECTO);
+      return x ? estadoDesdeElemento(x) : estadoVacio();
     }
 
     const PLANTILLAS = [
@@ -1005,7 +1018,7 @@
 
     // Une un estado guardado con los valores por defecto (por si faltan campos nuevos)
     function completarEstado(guardado) {
-      const base = estadoInicial();
+      const base = estadoVacio();
       const e = Object.assign({}, base, guardado || {});
       e.frente = caraBase(Object.assign({}, (guardado && guardado.frente) || base.frente));
       e.reverso = caraBase(Object.assign({}, (guardado && guardado.reverso) || base.reverso));
@@ -2991,8 +3004,8 @@
     }
 
     function nuevoDiseno() {
-      if (!confirm('¿Empezar un diseño nuevo? Lo que no hayas guardado en «Mis diseños» se perderá.')) return;
-      estado = estadoInicial();
+      if (!confirm('¿Empezar un diseño en blanco? Lo que no hayas guardado en «Mis diseños» se perderá.')) return;
+      estado = estadoVacio();
       cerrarDisenos();
       elegirPestana('formato');
       cambio(true);
@@ -3014,7 +3027,7 @@
     }
     function detalleDiseno(d) {
       const f = FORMATOS[d.formato] || FORMATOS.completo;
-      const g = geometria(Object.assign({}, estadoInicial(), d));
+      const g = geometria(Object.assign({}, estadoVacio(), d));
       return `${f.detalle} · ${(HOJAS[d.hoja] || HOJAS.carta).nombre} ${g.hojaVertical ? 'vertical' : 'horizontal'} · ${d.caras === 'dos' ? '2 caras' : '1 cara'}`;
     }
 
@@ -3033,9 +3046,7 @@
       const fijos = BIBLIO.map((x) => {
         let detalle = 'Imagen · se pone en la cara que estás editando';
         if (x.tipo !== 'imagen') {
-          const e = { ...estadoInicial(), formato: 'completo', caras: 'una' };
-          if (BASES[x.base]) BASES[x.base](e);
-          detalle = detalleDiseno({ ...e, ...x.diseno });
+          detalle = detalleDiseno(estadoDesdeElemento(x));
         }
         return {
           ...x, fuente: 'biblioteca', tipo: x.tipo || 'diseno', categoria: x.categoria || 'Otros',
@@ -3188,22 +3199,11 @@
           return;
         }
         if (!confirm(`¿Reemplazar el diseño abierto por «${x.nombre}»?\n\nSi quieres conservar lo que tienes, cancela y guárdalo antes en «Mis diseños».`)) return;
-        const e = estadoInicial();
-        e.frente = caraBase(); e.reverso = caraBase();
-        e.formato = 'completo'; e.caras = 'una';
-        if (BASES[x.base]) BASES[x.base](e);
-        const { frente, reverso, ...general } = JSON.parse(JSON.stringify(x.diseno));
-        Object.assign(e, general);
-        for (const [lado, datos] of [['frente', frente], ['reverso', reverso]]) {
-          if (!datos) continue;
-          const { imagen, ...resto } = datos;
-          Object.assign(e[lado], resto);
-          if (typeof imagen === 'string') e[lado].imagen = await imagenBiblio(imagen);
-          else if (imagen) e[lado].imagen = imagen;
+        const e = estadoDesdeElemento(x);
+        for (const lado of ['frente', 'reverso']) {
+          const img = x.diseno[lado] && x.diseno[lado].imagen;
+          if (typeof img === 'string') e[lado].imagen = await imagenBiblio(img);
         }
-        if (reverso && e.caras === 'una') e.caras = 'dos';
-        e.nombre = x.nombre;
-        e.idGuardado = null;
         estado = completarEstado(e);
         cerrarBiblioteca();
         cambio(true);
@@ -3252,7 +3252,12 @@
       db = await abrirDB();
       try {
         const guardado = await idb('readonly', (s) => s.get('__actual'));
-        if (guardado && guardado.estado) estado = completarEstado(guardado.estado);
+        // El ejemplo antiguo («Fiesta de la Comunidad» / «Ángel de la Guarda») ya no existe:
+        // si lo guardado es ese ejemplo, se abre la oración por defecto.
+        const g0 = guardado && guardado.estado;
+        const esEjemploViejo = g0 && g0.frente && g0.frente.titulo === 'Fiesta de la Comunidad' &&
+          g0.reverso && g0.reverso.titulo === 'Ángel de la Guarda' && !g0.idGuardado;
+        if (g0 && !esEjemploViejo) estado = completarEstado(g0);
       } catch (e) { }
       sincronizarUI();
       sincronizarCalibracion();

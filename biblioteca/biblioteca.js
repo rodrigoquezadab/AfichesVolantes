@@ -165,7 +165,8 @@ window.BIBLIOTECA.push({
   });
 })();
 
-// La misma oración en carta vertical a dos caras, con letra más grande. Orden original del documento:
+// La misma oración en carta vertical a dos caras, con letra más grande y una columna por cara.
+// Es el diseño que se abre por defecto en la app (ID_POR_DEFECTO en index.html). Orden original del documento:
 // frente hasta la Salve; reverso con los misterios y la oración final. Se arma desde el texto del folleto.
 (function () {
   const folleto = window.BIBLIOTECA.find((x) => x.id === 'mes-de-maria');
@@ -178,7 +179,7 @@ window.BIBLIOTECA.push({
     disposicion: 'texto', pie: '',
     fuenteTitulo: 'elegante', fuenteTexto: 'moderna', alinear: 'left', vertical: 'arriba',
     tamano: 100, proporcionTitulo: 1.9, mayusculas: false, interior: 1,
-    interlineado: 1.15, espacioParrafos: 0.35, columnas: '2', marco: 'ninguno',
+    interlineado: 1.15, espacioParrafos: 0.35, columnas: '1', marco: 'ninguno',
     colorTitulo: '#1e3a8a', colorTexto: '#111827', fondo: '#ffffff',
   };
   window.BIBLIOTECA.push({
@@ -187,7 +188,7 @@ window.BIBLIOTECA.push({
     nombre: 'Oración mes de María y Rosario (carta, dos caras)',
     categoria: 'Oraciones',
     etiquetas: ['María', 'Virgen', 'rosario', 'misterios', 'Salve', 'noviembre', 'diciembre', 'carta', 'vertical', 'dos caras', 'letra grande'],
-    descripcion: 'Hoja carta vertical impresa por ambos lados, con letra más grande y a dos columnas. Frente: oración inicial, cómo rezar el rosario y la Salve. Reverso: los misterios y la oración final.',
+    descripcion: 'Hoja carta vertical impresa por ambos lados, con letra más grande y una columna por cara. Frente: oración inicial, cómo rezar el rosario y la Salve. Reverso: los misterios y la oración final.',
     icono: '📖',
     diseno: {
       hoja: 'carta', formato: 'completo', orientacion: 'vertical', caras: 'dos', margen: '8', corte: false, imprimir: 'ambas',
@@ -199,7 +200,7 @@ window.BIBLIOTECA.push({
       },
       reverso: {
         ...estilo,
-        tamano: 92, // el reverso tiene menos texto: así la letra queda igual que en el frente (unos 13 pt)
+        tamano: 85, // el reverso tiene menos texto: así la letra queda igual que en el frente (unos 12 pt)
         titulo: '', subtitulo: '',
         cuerpo: [...reverso.slice(0, iSalve), ...reverso.slice(iSalve + 1)].join('\n\n'),
       },
