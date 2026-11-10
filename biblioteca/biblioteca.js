@@ -164,3 +164,45 @@ window.BIBLIOTECA.push({
     },
   });
 })();
+
+// La misma oración en carta vertical a dos caras, con letra más grande. Orden original del documento:
+// frente hasta la Salve; reverso con los misterios y la oración final. Se arma desde el texto del folleto.
+(function () {
+  const folleto = window.BIBLIOTECA.find((x) => x.id === 'mes-de-maria');
+  if (!folleto) return;
+  const frente = folleto.diseno.frente.cuerpo.split('\n\n');
+  const reverso = folleto.diseno.reverso.cuerpo.split('\n\n');
+  frente[frente.length - 1] = frente[frente.length - 1].replace(' (al reverso)', '');
+  const iSalve = reverso.findIndex((b) => b.startsWith('**Salve:**'));
+  const estilo = {
+    disposicion: 'texto', pie: '',
+    fuenteTitulo: 'elegante', fuenteTexto: 'moderna', alinear: 'left', vertical: 'arriba',
+    tamano: 100, proporcionTitulo: 1.9, mayusculas: false, interior: 1,
+    interlineado: 1.15, espacioParrafos: 0.35, columnas: '2', marco: 'ninguno',
+    colorTitulo: '#1e3a8a', colorTexto: '#111827', fondo: '#ffffff',
+  };
+  window.BIBLIOTECA.push({
+    id: 'mes-de-maria-rosario-carta-2caras',
+    tipo: 'diseno',
+    nombre: 'Oración mes de María y Rosario (carta, dos caras)',
+    categoria: 'Oraciones',
+    etiquetas: ['María', 'Virgen', 'rosario', 'misterios', 'Salve', 'noviembre', 'diciembre', 'carta', 'vertical', 'dos caras', 'letra grande'],
+    descripcion: 'Hoja carta vertical impresa por ambos lados, con letra más grande y a dos columnas. Frente: oración inicial, cómo rezar el rosario y la Salve. Reverso: los misterios y la oración final.',
+    icono: '📖',
+    diseno: {
+      hoja: 'carta', formato: 'completo', orientacion: 'vertical', caras: 'dos', margen: '8', corte: false, imprimir: 'ambas',
+      frente: {
+        ...estilo,
+        titulo: folleto.diseno.frente.titulo,
+        subtitulo: folleto.diseno.frente.subtitulo,
+        cuerpo: [...frente, reverso[iSalve]].join('\n\n'),
+      },
+      reverso: {
+        ...estilo,
+        tamano: 92, // el reverso tiene menos texto: así la letra queda igual que en el frente (unos 13 pt)
+        titulo: '', subtitulo: '',
+        cuerpo: [...reverso.slice(0, iSalve), ...reverso.slice(iSalve + 1)].join('\n\n'),
+      },
+    },
+  });
+})();

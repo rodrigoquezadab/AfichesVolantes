@@ -104,6 +104,12 @@ Nace de la fusión de dos apps del usuario:
     - Formato: carta vertical, una cara, margen de 8 mm, interior del 1 %, título 1,9×, interlineado 1,15.
     - Resultado: 9,2 pt en la app; en LibreOffice, una sola página.
 
+- **v1.6.1 (10-11-2026):** elemento `mes-de-maria-rosario-carta-2caras`, con la misma oración en carta vertical a dos caras y letra más grande.
+  - El usuario lo pidió como la versión de una página, pero por ambos lados.
+  - **Orden:** el original. El frente llega hasta la Salve y el reverso tiene los misterios y la oración final. Al reverso le sobra espacio abajo.
+  - **Tamaño:** dos columnas, interlineado 1,15, espacio entre párrafos 0,35 y margen de 8 mm. El reverso usa `tamano: 92` para que su letra iguale la del frente: unos 12,9 pt en las dos caras, frente a 9,2 pt en una página.
+  - **Verificación:** las palabras son las mismas que en el folleto; en LibreOffice salen 2 páginas.
+
 ## Ideas pendientes
 
 - Varias piezas distintas en una misma hoja (por ejemplo, 4 oraciones diferentes).
