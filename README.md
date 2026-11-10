@@ -34,9 +34,11 @@ Abriendo `index.html` con doble clic, las imágenes de la biblioteca se ven y se
   - Busca sin importar tildes ni mayúsculas, en el nombre, la categoría, las etiquetas, la descripción y el texto mismo. Muestra el fragmento donde aparece la palabra.
   - Filtra por categoría e incluye también tus **Mis diseños**.
   - Un documento reemplaza el diseño abierto; una imagen se pone en la cara que estás editando.
-  - Primer elemento: «📿 Oración mes de María», un folleto a dos caras en media carta.
+  - Elementos incluidos:
+    - «📿 Oración mes de María»: folleto a dos caras en media carta.
+    - «📄 Oración mes de María y Rosario (carta vertical)»: todo en una página carta, a dos columnas, en el orden original del documento.
 - **Folletos y manuales a dos caras:** plantilla «📖 Folleto o manual (2 caras)», que deja media carta, frente y reverso, letra compacta, poco margen y texto desde arriba. Los pasos numerados («1. …») quedan con el número colgando y las líneas enteras en negrita se ven como encabezados con el color del título.
-- **Interlineado y espacio entre párrafos** ajustables en cada cara, para que un texto largo quepa con la letra más grande posible.
+- **Interlineado, espacio entre párrafos y texto en una o dos columnas**, ajustables en cada cara, para que un texto largo quepa con la letra más grande posible. Las dos columnas también pasan al documento de Writer.
 - **Estilo:** 7 fuentes del sistema, alineación, posición vertical, colores, fondo, marco y espacio interior.
 - **Imagen:** ajustar, cubrir o estirar; giro manual o automático.
 - **Dos caras:** frente y reverso con instrucciones para la impresora (voltear por el borde largo o corto), opción de imprimir solo frentes y luego solo reversos, y giro de 180° del reverso.

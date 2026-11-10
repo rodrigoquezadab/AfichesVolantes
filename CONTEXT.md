@@ -95,6 +95,15 @@ Nace de la fusión de dos apps del usuario:
   - **ZIP:** se escribe sin compresión, con CRC32 propio y `mimetype` primero.
   - **Limitaciones:** no reproduce el marco, el giro de 180° del reverso ni el texto encima de la imagen; la imagen va arriba.
 
+- **v1.6.0 (10-11-2026):** texto en dos columnas y la oración en una página carta vertical.
+  - **Columnas por cara:** campo `columnas` ('1' o '2').
+    - En la app: `column-count` en `.t-cuerpo` con separación de 1,4 em, y los ítems de lista no se cortan entre columnas. El ajuste automático sigue funcionando porque las columnas se equilibran solas y se mide el alto.
+    - En Writer: el cuerpo va en una `text:section` de 2 columnas equilibradas, con nombre único por celda.
+  - **Elemento nuevo en la Biblioteca:** `mes-de-maria-rosario-carta`.
+    - Se arma desde el texto del folleto, para no duplicarlo, pero en el orden original del documento (la Salve antes de los misterios) y sin «(al reverso)».
+    - Formato: carta vertical, una cara, margen de 8 mm, interior del 1 %, título 1,9×, interlineado 1,15.
+    - Resultado: 9,2 pt en la app; en LibreOffice, una sola página.
+
 ## Ideas pendientes
 
 - Varias piezas distintas en una misma hoja (por ejemplo, 4 oraciones diferentes).

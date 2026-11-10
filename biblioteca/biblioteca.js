@@ -127,3 +127,40 @@ window.BIBLIOTECA.push({
     },
   },
 });
+
+// Mismo texto en una sola página carta vertical, en el orden original del documento
+// (Salve antes de los misterios) y sin el «(al reverso)» del folleto. Se arma a partir
+// del folleto para que el texto exista una sola vez.
+(function () {
+  const folleto = window.BIBLIOTECA.find((x) => x.id === 'mes-de-maria');
+  if (!folleto) return;
+  const frente = folleto.diseno.frente.cuerpo.split('\n\n');
+  const reverso = folleto.diseno.reverso.cuerpo.split('\n\n');
+  frente[frente.length - 1] = frente[frente.length - 1].replace(' (al reverso)', '');
+  const iSalve = reverso.findIndex((b) => b.startsWith('**Salve:**'));
+  const cuerpo = [...frente, reverso[iSalve], ...reverso.slice(0, iSalve), ...reverso.slice(iSalve + 1)].join('\n\n');
+
+  window.BIBLIOTECA.push({
+    id: 'mes-de-maria-rosario-carta',
+    tipo: 'diseno',
+    nombre: 'Oración mes de María y Rosario (carta vertical)',
+    categoria: 'Oraciones',
+    etiquetas: ['María', 'Virgen', 'rosario', 'misterios', 'Salve', 'noviembre', 'diciembre', 'página', 'carta', 'vertical', 'una cara'],
+    descripcion: 'Todo en una página carta vertical a dos columnas: oración inicial, cómo rezar el rosario, la Salve, los cuatro misterios y la oración final.',
+    icono: '📄',
+    diseno: {
+      hoja: 'carta', formato: 'completo', orientacion: 'vertical', caras: 'una', margen: '8', corte: false,
+      frente: {
+        titulo: folleto.diseno.frente.titulo,
+        subtitulo: folleto.diseno.frente.subtitulo,
+        cuerpo,
+        pie: '',
+        disposicion: 'texto',
+        fuenteTitulo: 'elegante', fuenteTexto: 'moderna', alinear: 'left', vertical: 'arriba',
+        tamano: 100, proporcionTitulo: 1.9, mayusculas: false, interior: 1,
+        interlineado: 1.15, espacioParrafos: 0.35, columnas: '2', marco: 'ninguno',
+        colorTitulo: '#1e3a8a', colorTexto: '#111827', fondo: '#ffffff',
+      },
+    },
+  });
+})();
